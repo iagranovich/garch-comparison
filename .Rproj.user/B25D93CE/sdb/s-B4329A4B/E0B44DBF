@@ -1,0 +1,22 @@
+{
+    "contents" : "",
+    "created" : 1431374367832.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "E0B44DBF",
+    "lastKnownWriteTime" : 578055781,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "caption" : "rawOxfordData",
+        "contentUrl" : "content?title=rawOxfordData&file=7c638c835fe04e488c3bd9627ab6f2b1.htm",
+        "displayedObservations" : 1000,
+        "displayedVariables" : 100,
+        "totalObservations" : 4011,
+        "variables" : 399
+    },
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}

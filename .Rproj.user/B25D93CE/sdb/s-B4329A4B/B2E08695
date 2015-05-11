@@ -1,0 +1,17 @@
+{
+    "contents" : "install.packages(\"xts\")\nlibrary(xts)\n\n# Data from 'Oxford-Man Institute of Quantitative Finance'. This data based on underlying\n# high frequency data, which obtained through 'Reuters DataScope Tick History'.\n# \n# # Rules of cleaning up of this data: \n# # http://realized.oxford-man.ox.ac.uk/documentation/data-cleaning\n\nif(!dir.exists(\"../data\")){dir.create(\"../data\")}\nfURL <- \"http://realized.oxford-man.ox.ac.uk/media/1366/oxfordmanrealizedvolatilityindices.zip\"\ndownload.file(fURL, \"../data/rowOxfordData.zip\");\nunzip(\"../data/rowOxfordData.zip\", exdir = \"../data\")\n\nrawOxfordData <- xts(read.zoo(\"../data/OxfordManRealizedVolatilityIndices.csv\",  \n                              format = \"%Y%m%d\", index.column = 1, \n                              header = T, sep= \",\", skip = 2))\n                             \n\n",
+    "created" : 1431362659683.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "590660876",
+    "id" : "B2E08695",
+    "lastKnownWriteTime" : 1431378246,
+    "path" : "~/RProjects/garchComparison/proj/data.R",
+    "project_path" : "data.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}
