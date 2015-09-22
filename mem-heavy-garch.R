@@ -1,6 +1,7 @@
-install.packages(с("dplyr", "xts"))
+install.packages(с("dplyr", "xts", "rugarch"))
 require(dplyr)
 require(xts)
+require(rugarch)
 
 ##---------------------------------------------------------------------------
 ## Import HEAVY estimators from EViews through CSV
@@ -14,6 +15,7 @@ mem.static.coef.rs <- read.csv("./coef_2008/mem_coef_rs.csv")
 ##---------------------------------------------------------------------------
 ## HAVY forecast
 ##---------------------------------------------------------------------------
+# 1-step-ahead without re-estimation
 
 heavy.static.test.sp <-
     cbind(dtaTest[ ,"SPX2.openprice"],
@@ -50,6 +52,7 @@ heavy.static.test.rs <-
 ##----------------------------------------------------------------------------
 ## MEM forecast
 ##----------------------------------------------------------------------------
+# 1-step-ahead without re-estimation
 
 mem.static.test.sp <-
     cbind(dtaTest[ ,"SPX2.openprice"],
@@ -87,6 +90,94 @@ mem.static.test.rs <-
                                             head(-1)),
            mse   = (RUT2.rk - garch)^2,
            qlike = log(garch) - RUT2.rk / garch)
+
+##---------------------------------------------------------------------------
+## RGARCH forecast
+##---------------------------------------------------------------------------
+## 1-step-ahead without re-estimation
+
+#spec
+rgarch.spec.sp <-
+    ugarchspec(variance.model = list(model = "realGARCH",
+                                     garchOrder = c(1,1)),
+               mean.model = list(armaOrder = c(0,0),
+                                 include.mean = FALSE),
+               distribution.model = "norm"
+               ,fixed.pars = list("xi" = 0)
+              )
+
+
+rgarch.spec.rs <-
+    ugarchspec(variance.model = list(model = "realGARCH",
+                                     garchOrder = c(1,1)),
+               mean.model = list(armaOrder = c(0,0),
+                                 include.mean = FALSE),
+               distribution.model = "norm"
+               #,fixed.pars = list("omega" = 0)
+              )
+#fit
+rgarch.static.coef.sp <-
+    ugarchfit(data = log(dtaTrain[ ,"SPX2.closeprice"]/
+                         dtaTrain[ ,"SPX2.openprice"] %>%
+                         na.omit()),
+              spec = rgarch.spec.sp,
+              solver = "hybrid",
+              realizedVol = dtaTrain[ ,"SPX2.rk"] %>%
+                            na.omit() %>% sqrt())
+
+rgarch.static.coef.rs <-
+    ugarchfit(data = log(dtaTrain[ ,"RUT2.closeprice"]/
+                         dtaTrain[ ,"RUT2.openprice"] %>%
+                         na.omit()),
+              spec = rgarch.spec.rs,
+              solver = "hybrid",
+              realizedVol = dtaTrain[ ,"RUT2.rk"] %>%
+                            na.omit() %>% sqrt())
+
+#forecast
+rgarch.specf.sp <- rgarch.spec.sp
+setfixed(rgarch.specf.sp) <- as.list(coef(rgarch.static.coef.sp))
+rgarch.static.forc.sp <- ugarchforecast(
+    rgarch.specf.sp,
+    n.ahead = 1,
+    n.roll = nrow(na.omit(dtaTest[ ,"SPX2.closeprice"]))-1,
+    data = log(dtaTest[ ,"SPX2.closeprice"]/
+               dtaTest[ ,"SPX2.openprice"] %>%
+               na.omit()),
+    out.sample = nrow(na.omit(dtaTest[ ,"SPX2.closeprice"]))-1,
+    realizedVol = (dtaTest[ ,"SPX2.rk"] %>%
+                   na.omit() %>% sqrt())) %>%
+    sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
+    mutate(garch = sigma^2,
+           rk = tail(na.omit(dtaTest[ ,"SPX2.rk"]), -1),
+           mse   = (rk - garch)^2,
+           qlike = log(garch) - rk / garch)
+
+
+rgarch.specf.rs <- rgarch.spec.rs
+setfixed(rgarch.specf.rs) <- as.list(coef(rgarch.static.coef.rs))
+rgarch.static.forc.rs <- ugarchforecast(
+    rgarch.specf.rs,
+    n.ahead = 1,
+    n.roll = nrow(na.omit(dtaTest[ ,"RUT2.closeprice"]))-1,
+    data = log(dtaTest[ ,"RUT2.closeprice"]/
+               dtaTest[ ,"RUT2.openprice"] %>%
+               na.omit()),
+    out.sample = nrow(na.omit(dtaTest[ ,"RUT2.closeprice"]))-1,
+    realizedVol = (dtaTest[ ,"RUT2.rk"] %>%
+                   na.omit() %>% sqrt())) %>%
+    sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
+    mutate(garch = sigma^2,
+           rk = tail(na.omit(dtaTest[ ,"RUT2.rk"]), -1),
+           mse   = (rk - garch)^2,
+           qlike = log(garch) - rk / garch)
+
+##---------------------------------------------------------------------------
+## Simple GARCH forecast
+##---------------------------------------------------------------------------
+# 1-step-ahead without re-estimation
+
+
 
 
 VarStaticForc <- function(init.var, const, coef, coef.var, data){
@@ -153,5 +244,4 @@ CheckStaticForc(mem.static.test.rs[7,8],
                 c(mem.static.test.rs[6,6],
                   mem.static.test.rs[6,4],
                   mem.static.test.rs[6,7]))
-
 
