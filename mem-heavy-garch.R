@@ -92,7 +92,7 @@ mem.static.test.rs <-
            qlike = log(garch) - RUT2.rk / garch)
 
 ##---------------------------------------------------------------------------
-## RGARCH forecast
+## Realized GARCH forecast
 ##---------------------------------------------------------------------------
 ## 1-step-ahead without re-estimation
 
@@ -149,7 +149,7 @@ rgarch.static.forc.sp <- ugarchforecast(
                    na.omit() %>% sqrt())) %>%
     sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
     mutate(garch = sigma^2,
-           rk = tail(na.omit(dtaTest[ ,"SPX2.rk"]), -1),
+           rk    = tail(na.omit(dtaTest[ ,"SPX2.rk"]), -1),
            mse   = (rk - garch)^2,
            qlike = log(garch) - rk / garch)
 
@@ -168,7 +168,7 @@ rgarch.static.forc.rs <- ugarchforecast(
                    na.omit() %>% sqrt())) %>%
     sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
     mutate(garch = sigma^2,
-           rk = tail(na.omit(dtaTest[ ,"RUT2.rk"]), -1),
+           rk    = tail(na.omit(dtaTest[ ,"RUT2.rk"]), -1),
            mse   = (rk - garch)^2,
            qlike = log(garch) - rk / garch)
 
@@ -177,6 +177,68 @@ rgarch.static.forc.rs <- ugarchforecast(
 ##---------------------------------------------------------------------------
 # 1-step-ahead without re-estimation
 
+#---S&P 500
+garch.spec.sp <-
+    ugarchspec(variance.model = list(model = "sGARCH",
+                                     garchOrder = c(1,1)),
+               mean.model = list(armaOrder = c(0,0),
+                                 include.mean = FALSE),
+               distribution.model = "norm"
+               #,fixed.pars = list("omega" = 0, "alpha1" = 0, "beta1" = 0)
+              )
+
+garch.static.coef.sp <-
+    ugarchfit(data = log(dtaTrain[ ,"SPX2.closeprice"]/
+                         dtaTrain[ ,"SPX2.openprice"] %>% na.omit()),
+              spec = garch.spec.sp)
+
+garch.specf.sp <- garch.spec.sp
+setfixed(garch.specf.sp) <- as.list(coef(garch.static.coef.sp))
+
+garch.static.forc.sp <- ugarchforecast(
+    garch.specf.sp,
+    n.ahead = 1,
+    n.roll = nrow(na.omit(dtaTest[ ,"SPX2.closeprice"]))-1,
+    data = log(dtaTest[ ,"SPX2.closeprice"]/
+               dtaTest[ ,"SPX2.openprice"] %>% na.omit()),
+    out.sample = nrow(na.omit(dtaTest[ ,"SPX2.closeprice"]))-1) %>%
+    sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
+    mutate(garch = sigma^2,
+           rk    = tail(na.omit(dtaTest[ ,"SPX2.rk"]), -1),
+           mse   = (rk - garch)^2,
+           qlike = log(garch) - rk / garch)
+
+
+#---RUSSEL
+garch.spec.rs <-
+    ugarchspec(variance.model = list(model = "sGARCH",
+                                     garchOrder = c(1,1)),
+               mean.model = list(armaOrder = c(0,0),
+                                 include.mean = FALSE),
+               distribution.model = "norm"
+               ,fixed.pars = list("omega" = 0)
+              )
+
+garch.static.coef.rs <-
+    ugarchfit(data = log(dtaTrain[ ,"RUT2.closeprice"]/
+                         dtaTrain[ ,"RUT2.openprice"] %>% na.omit()),
+              spec = garch.spec.rs)
+
+garch.specf.rs <- garch.spec.rs
+setfixed(garch.specf.rs) <- as.list(coef(garch.static.coef.rs))
+
+garch.static.forc.rs <- ugarchforecast(
+    garch.specf.rs,
+    n.ahead = 1,
+    n.roll = nrow(na.omit(dtaTest[ ,"RUT2.closeprice"]))-1,
+    data = log(dtaTest[ ,"RUT2.closeprice"]/
+               dtaTest[ ,"RUT2.openprice"] %>% na.omit()),
+    out.sample = nrow(na.omit(dtaTest[ ,"RUT2.closeprice"]))-1) %>%
+    sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
+    mutate(garch = sigma^2,
+           rk    = tail(na.omit(dtaTest[ ,"RUT2.rk"]), -1),
+           mse   = (rk - garch)^2,
+           qlike = log(garch) - rk / garch)
 
 
 
