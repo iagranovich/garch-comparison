@@ -63,6 +63,61 @@ dtaShortName <- dtaNameColumns[grep("r$", dtaNameColumns[ ,3]), c(1,3)]
 dtaTrain <- dtaOxfordRaw["2004-01-01/2007-12-31"]   #for estimation
 dtaTest  <- dtaOxfordRaw["2008-01-01/2009-12-31"]   #for testing
 
+dtaTrainSP <-
+    cbind(dtaTrain[ ,"SPX2.openprice"],
+          dtaTrain[ ,"SPX2.closeprice"],
+          dtaTrain[ ,"SPX2.rk"]) %>%
+    setNames(c("open", "close", "rk")) %>%
+    na.omit() %>%
+    (function(x){
+        idx = index(x)
+        xx = x %>% data.frame() %>%
+        mutate(rcto = log(close/open)) %>%
+        select(rcto, rk)
+        return(xts(xx, order.by = idx))})
+
+dtaTrainRS <-
+    cbind(dtaTrain[ ,"RUT2.openprice"],
+          dtaTrain[ ,"RUT2.closeprice"],
+          dtaTrain[ ,"RUT2.rk"]) %>%
+    setNames(c("open", "close", "rk")) %>%
+    na.omit() %>%
+    (function(x){
+        idx = index(x)
+        xx = x %>% data.frame() %>%
+        mutate(rcto = log(close/open)) %>%
+        select(rcto, rk)
+        return(xts(xx, order.by = idx))})
+
+
+dtaTestSP <-
+    cbind(dtaTest[ ,"SPX2.openprice"],
+          dtaTest[ ,"SPX2.closeprice"],
+          dtaTest[ ,"SPX2.highlow"],
+          dtaTest[ ,"SPX2.rk"]) %>%
+    setNames(c("open", "close", "hilo", "rk")) %>%
+    na.omit() %>%
+    (function(x){
+        idx = index(x)
+        xx = x %>% data.frame() %>%
+        mutate(rcto = log(close/open)) %>%
+        select(rcto, hilo, rk)
+        return(xts(xx, order.by = idx))})
+
+dtaTestRS <-
+    cbind(dtaTest[ ,"RUT2.openprice"],
+          dtaTest[ ,"RUT2.closeprice"],
+          dtaTest[ ,"RUT2.rk"]) %>%
+    setNames(c("open", "close", "rk")) %>%
+    na.omit() %>%
+    (function(x){
+        idx = index(x)
+        xx = x %>% data.frame() %>%
+        mutate(rcto = log(close/open)) %>%
+        select(rcto, rk)
+        return(xts(xx, order.by = idx))})
+
+
 ##--------------------------------------------------------------
 ## Export data for calculating coeff by EViews
 ##--------------------------------------------------------------

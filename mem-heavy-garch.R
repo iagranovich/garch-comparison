@@ -4,7 +4,7 @@ require(xts)
 require(rugarch)
 
 ##---------------------------------------------------------------------------
-## Import HEAVY estimators from EViews through CSV
+## Import HEAVY and MEM estimators from EViews through CSV
 ##---------------------------------------------------------------------------
 
 heavy.static.coef.sp <- read.csv("./coef_2008/heavy_coef_sp.csv")
@@ -17,79 +17,67 @@ mem.static.coef.rs <- read.csv("./coef_2008/mem_coef_rs.csv")
 ##---------------------------------------------------------------------------
 # 1-step-ahead without re-estimation
 
+
 heavy.static.test.sp <-
-    cbind(dtaTest[ ,"SPX2.openprice"],
-          dtaTest[ ,"SPX2.closeprice"],
-          dtaTest[ ,"SPX2.rk"]) %>%
-    na.omit() %>%
-    data.frame() %>%
-    mutate(rcto  = log(SPX2.closeprice / SPX2.openprice),
-           garch = VarStaticForc(init.var = dtaEViewsSP$rcto %>% var(),
+    data.frame(dtaTestSP[ ,"rcto"], dtaTestSP[ ,"rk"]) %>%
+    setNames(c("rcto", "rk")) %>%
+    mutate(garch = VarStaticForc(init.var = dtaEViewsSP$rcto %>% var(),
                                  const    = heavy.static.coef.sp[1,  "Coef"],
                                  coef     = heavy.static.coef.sp[3:4,"Coef"],
                                  coef.var = heavy.static.coef.sp[2,  "Coef"],
-                                 data     = cbind(SPX2.rk, rcto) %>% head(-1)),
-           mse   = (SPX2.rk - garch)^2,
-           qlike = log(garch) - SPX2.rk / garch)
+                                 data     = cbind(rk, rcto) %>% head(-1)),
+           mse   = (rk - garch)^2,
+           qlike = log(garch) - rk / garch)
 
 
 heavy.static.test.rs <-
-    cbind(dtaTest[ ,"RUT2.openprice"],
-          dtaTest[ ,"RUT2.closeprice"],
-          dtaTest[ ,"RUT2.rk"]) %>%
-    na.omit() %>%
-    data.frame() %>%
-    mutate(rcto   = log(RUT2.closeprice / RUT2.openprice),
-           ind.rk = ifelse(rcto < 0, 1, 0) * RUT2.rk,
+    data.frame(dtaTestRS[ ,"rcto"], dtaTestRS[ ,"rk"]) %>%
+    setNames(c("rcto", "rk")) %>%
+    mutate(ind.rk = ifelse(rcto < 0, 1, 0) * rk,
            garch  = VarStaticForc(init.var = dtaEViewsRUS$rcto %>% var(),
                                   const    = heavy.static.coef.rs[1,  "Coef"],
                                   coef     = heavy.static.coef.rs[3:4,"Coef"],
                                   coef.var = heavy.static.coef.rs[2,  "Coef"],
                                   data     = cbind(ind.rk, rcto) %>% head(-1)),
-           mse   = (RUT2.rk - garch)^2,
-           qlike = log(garch) - RUT2.rk / garch)
+           mse   = (rk - garch)^2,
+           qlike = log(garch) - rk / garch)
+
 
 ##----------------------------------------------------------------------------
 ## MEM forecast
 ##----------------------------------------------------------------------------
 # 1-step-ahead without re-estimation
 
+
 mem.static.test.sp <-
-    cbind(dtaTest[ ,"SPX2.openprice"],
-          dtaTest[ ,"SPX2.closeprice"],
-          dtaTest[ ,"SPX2.highlow"],
-          dtaTest[ ,"SPX2.rk"]) %>%
-    na.omit() %>%
-    data.frame() %>%
-    mutate(rcto  = log(SPX2.closeprice / SPX2.openprice),
-           hilo2 = SPX2.highlow^2,
+    data.frame(dtaTestSP[ ,"rcto"],
+               dtaTestSP[ ,"rk"],
+               dtaTestSP[ ,"hilo"]) %>%
+    setNames(c("rcto", "rk", "hilo")) %>%
+    mutate(hilo2 = hilo^2,
            garch = VarStaticForc(init.var = dtaEViewsSP$rcto %>% var(),
                                  const    = mem.static.coef.sp[1,  "Coef"],
                                  coef     = mem.static.coef.sp[3:5,"Coef"],
                                  coef.var = mem.static.coef.sp[2,  "Coef"],
-                                 data     = cbind(SPX2.rk, hilo2, rcto) %>%
-                                            head(-1)),
-           mse   = (SPX2.rk - garch)^2,
-           qlike = log(garch) - SPX2.rk / garch)
+                                 data     = cbind(rk, hilo2, rcto)%>% head(-1)),
+           mse   = (rk - garch)^2,
+           qlike = log(garch) - rk / garch)
+
 
 mem.static.test.rs <-
-    cbind(dtaTest[ ,"RUT2.openprice"],
-          dtaTest[ ,"RUT2.closeprice"],
-          dtaTest[ ,"RUT2.rk"]) %>%
-    na.omit() %>%
-    data.frame() %>%
-    mutate(rcto  = log(RUT2.closeprice / RUT2.openprice),
-           ind   = ifelse(rcto < 0, 1, 0),
+    data.frame(dtaTestRS[ ,"rcto"], dtaTestRS[ ,"rk"]) %>%
+    setNames(c("rcto", "rk")) %>%
+    mutate(ind = ifelse(rcto < 0, 1, 0),
            ind_rcto2 = ind * rcto^2,
-           ind_rk = ind * RUT2.rk,
+           ind_rk = ind * rk,
            garch = VarStaticForc(init.var = dtaEViewsRUS$rcto %>% var(),
                                  const    = mem.static.coef.rs[1,  "Coef"],
                                  coef     = mem.static.coef.rs[3:5,"Coef"],
                                  coef.var = mem.static.coef.rs[2,  "Coef"],
                                  data     = cbind(ind_rcto2, rcto, ind_rk) %>%
                                             head(-1)),
-           mse   = (RUT2.rk - garch)^2,
-           qlike = log(garch) - RUT2.rk / garch)
+           mse   = (rk - garch)^2,
+           qlike = log(garch) - rk / garch)
 
 ##---------------------------------------------------------------------------
 ## Realized GARCH forecast
@@ -106,7 +94,6 @@ rgarch.spec.sp <-
                ,fixed.pars = list("xi" = 0)
               )
 
-
 rgarch.spec.rs <-
     ugarchspec(variance.model = list(model = "realGARCH",
                                      garchOrder = c(1,1)),
@@ -115,24 +102,20 @@ rgarch.spec.rs <-
                distribution.model = "norm"
                #,fixed.pars = list("omega" = 0)
               )
+
 #fit
 rgarch.static.coef.sp <-
-    ugarchfit(data = log(dtaTrain[ ,"SPX2.closeprice"]/
-                         dtaTrain[ ,"SPX2.openprice"] %>%
-                         na.omit()),
+    ugarchfit(data = dtaTrainSP[ ,"rcto"],
               spec = rgarch.spec.sp,
               solver = "hybrid",
-              realizedVol = dtaTrain[ ,"SPX2.rk"] %>%
-                            na.omit() %>% sqrt())
+              realizedVol = dtaTrainSP[ ,"rk"] %>% sqrt())
 
 rgarch.static.coef.rs <-
-    ugarchfit(data = log(dtaTrain[ ,"RUT2.closeprice"]/
-                         dtaTrain[ ,"RUT2.openprice"] %>%
-                         na.omit()),
+    ugarchfit(data = dtaTrainRS[ ,"rcto"],
               spec = rgarch.spec.rs,
               solver = "hybrid",
-              realizedVol = dtaTrain[ ,"RUT2.rk"] %>%
-                            na.omit() %>% sqrt())
+              realizedVol = dtaTrainRS[ ,"rk"] %>% sqrt())
+
 
 #forecast
 rgarch.specf.sp <- rgarch.spec.sp
@@ -140,16 +123,13 @@ setfixed(rgarch.specf.sp) <- as.list(coef(rgarch.static.coef.sp))
 rgarch.static.forc.sp <- ugarchforecast(
     rgarch.specf.sp,
     n.ahead = 1,
-    n.roll = nrow(na.omit(dtaTest[ ,"SPX2.closeprice"]))-1,
-    data = log(dtaTest[ ,"SPX2.closeprice"]/
-               dtaTest[ ,"SPX2.openprice"] %>%
-               na.omit()),
-    out.sample = nrow(na.omit(dtaTest[ ,"SPX2.closeprice"]))-1,
-    realizedVol = (dtaTest[ ,"SPX2.rk"] %>%
-                   na.omit() %>% sqrt())) %>%
+    n.roll = nrow(dtaTestSP[ ,"rcto"]) - 1,
+    data = dtaTestSP[ ,"rcto"],
+    out.sample = nrow(dtaTestSP[ ,"rcto"]) - 1,
+    realizedVol = dtaTestSP[ ,"rk"] %>% sqrt()) %>%
     sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
     mutate(garch = sigma^2,
-           rk    = tail(na.omit(dtaTest[ ,"SPX2.rk"]), -1),
+           rk    = tail(dtaTestSP[ ,"rk"], -1),
            mse   = (rk - garch)^2,
            qlike = log(garch) - rk / garch)
 
@@ -159,16 +139,13 @@ setfixed(rgarch.specf.rs) <- as.list(coef(rgarch.static.coef.rs))
 rgarch.static.forc.rs <- ugarchforecast(
     rgarch.specf.rs,
     n.ahead = 1,
-    n.roll = nrow(na.omit(dtaTest[ ,"RUT2.closeprice"]))-1,
-    data = log(dtaTest[ ,"RUT2.closeprice"]/
-               dtaTest[ ,"RUT2.openprice"] %>%
-               na.omit()),
-    out.sample = nrow(na.omit(dtaTest[ ,"RUT2.closeprice"]))-1,
-    realizedVol = (dtaTest[ ,"RUT2.rk"] %>%
-                   na.omit() %>% sqrt())) %>%
+    n.roll = nrow(dtaTestRS[ ,"rcto"]) - 1,
+    data = dtaTestRS[ ,"rcto"],
+    out.sample = nrow(dtaTestRS[ ,"rcto"]) - 1,
+    realizedVol = dtaTestRS[ ,"rk"] %>%  sqrt()) %>%
     sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
     mutate(garch = sigma^2,
-           rk    = tail(na.omit(dtaTest[ ,"RUT2.rk"]), -1),
+           rk    = tail(dtaTestRS[ ,"rk"], -1),
            mse   = (rk - garch)^2,
            qlike = log(garch) - rk / garch)
 
@@ -188,8 +165,7 @@ garch.spec.sp <-
               )
 
 garch.static.coef.sp <-
-    ugarchfit(data = log(dtaTrain[ ,"SPX2.closeprice"]/
-                         dtaTrain[ ,"SPX2.openprice"] %>% na.omit()),
+    ugarchfit(data = dtaTrainSP[ ,"rcto"],
               spec = garch.spec.sp)
 
 garch.specf.sp <- garch.spec.sp
@@ -198,13 +174,12 @@ setfixed(garch.specf.sp) <- as.list(coef(garch.static.coef.sp))
 garch.static.forc.sp <- ugarchforecast(
     garch.specf.sp,
     n.ahead = 1,
-    n.roll = nrow(na.omit(dtaTest[ ,"SPX2.closeprice"]))-1,
-    data = log(dtaTest[ ,"SPX2.closeprice"]/
-               dtaTest[ ,"SPX2.openprice"] %>% na.omit()),
-    out.sample = nrow(na.omit(dtaTest[ ,"SPX2.closeprice"]))-1) %>%
+    n.roll = nrow(dtaTestSP[ ,"rcto"]) - 1,
+    data = dtaTestSP[ ,"rcto"],
+    out.sample = nrow(dtaTestSP[ ,"rcto"]) - 1) %>%
     sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
     mutate(garch = sigma^2,
-           rk    = tail(na.omit(dtaTest[ ,"SPX2.rk"]), -1),
+           rk    = tail(dtaTestSP[ ,"rk"], - 1),
            mse   = (rk - garch)^2,
            qlike = log(garch) - rk / garch)
 
@@ -220,8 +195,7 @@ garch.spec.rs <-
               )
 
 garch.static.coef.rs <-
-    ugarchfit(data = log(dtaTrain[ ,"RUT2.closeprice"]/
-                         dtaTrain[ ,"RUT2.openprice"] %>% na.omit()),
+    ugarchfit(data = dtaTrainRS[ ,"rcto"],
               spec = garch.spec.rs)
 
 garch.specf.rs <- garch.spec.rs
@@ -230,17 +204,19 @@ setfixed(garch.specf.rs) <- as.list(coef(garch.static.coef.rs))
 garch.static.forc.rs <- ugarchforecast(
     garch.specf.rs,
     n.ahead = 1,
-    n.roll = nrow(na.omit(dtaTest[ ,"RUT2.closeprice"]))-1,
-    data = log(dtaTest[ ,"RUT2.closeprice"]/
-               dtaTest[ ,"RUT2.openprice"] %>% na.omit()),
-    out.sample = nrow(na.omit(dtaTest[ ,"RUT2.closeprice"]))-1) %>%
+    n.roll = nrow(dtaTestRS[ ,"rcto"]) - 1,
+    data = dtaTestRS[ ,"rcto"],
+    out.sample = nrow(dtaTestRS[ ,"rcto"]) - 1,) %>%
     sigma() %>% t() %>% as.data.frame() %>% head(-1) %>% setNames("sigma") %>%
     mutate(garch = sigma^2,
-           rk    = tail(na.omit(dtaTest[ ,"RUT2.rk"]), -1),
+           rk    = tail(dtaTestRS[ ,"rk"], -1),
            mse   = (rk - garch)^2,
            qlike = log(garch) - rk / garch)
 
 
+##------------------------------------------------------------------------
+## Forecast function
+## ----------------------------------------------------------------------
 
 VarStaticForc <- function(init.var, const, coef, coef.var, data){
 
